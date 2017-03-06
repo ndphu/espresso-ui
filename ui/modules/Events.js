@@ -1,4 +1,5 @@
 import React, {Component} from 'react'
+import Websocket from 'react-websocket';
 import {Table, TableBody, TableHeader, TableHeaderColumn, TableRow, TableRowColumn} from 'material-ui/Table';
 import Paper from 'material-ui/Paper';
 class Events extends Component {
@@ -64,6 +65,21 @@ class Events extends Component {
         }
     }
 
+    onServerMessage(data) {
+        let msg = JSON.parse(data);
+        switch (msg.type) {
+            case "IR_EVENT_ADDED": {
+                this.state.events.splice(0, 0, msg.payload)
+                this.setState(this.state)
+            }
+        }
+    }
+
+    getWebsocketUrl() {
+        return (location.protocol.indexOf("https") == 0 ? "wss://" : "ws://") + location.host + "/esp/v1/ws/events"
+    }
+
+
     render() {
         var now = new Date().getTime()
         var eventRows = this.state.events.map(e => 
@@ -79,6 +95,8 @@ class Events extends Component {
 
         return (
             <Paper style={{margin:20}} zDepth={2}>
+                <Websocket url={this.getWebsocketUrl()}
+                    onMessage={this.onServerMessage.bind(this)}/>                
                 <Table selectable={false}>
                     <TableHeader adjustForCheckbox={this.state.showCheckboxes} displaySelectAll={this.state.showCheckboxes}>
                       <TableRow>

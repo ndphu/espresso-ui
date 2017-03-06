@@ -1,37 +1,76 @@
 package main
 
 import (
+	//"encoding/json"
+	"fmt"
+	"github.com/gorilla/websocket"
 	"github.com/ndphu/espresso-commons"
 	"github.com/ndphu/espresso-commons/dao"
 	"github.com/ndphu/espresso-commons/messaging"
 	"github.com/ndphu/espresso-commons/model"
 	"github.com/ndphu/espresso-commons/repo"
-	"golang.org/x/net/websocket"
 	"gopkg.in/gin-gonic/gin.v1"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"io"
 	"log"
-
-	"fmt"
 	"net/http"
+	"sync"
 )
 
 var (
-	Session        *mgo.Session
-	Database       *mgo.Database
-	MessageRounter *messaging.MessageRouter
+	Session           *mgo.Session
+	Database          *mgo.Database
+	MessageRounter    *messaging.MessageRouter
+	WSConnections     []*websocket.Conn
+	WSConnectionsLock sync.RWMutex
+	WSConnLock        sync.Mutex = sync.Mutex{}
+	WSUpgrader                   = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
+	IREventRepo *repo.IREventRepo
 )
 
-func EchoServer(ws *websocket.Conn) {
-	io.Copy(ws, ws)
+// websocket
+
+func wshandler(w http.ResponseWriter, r *http.Request) {
+	conn, err := WSUpgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println("Failed to set websocket upgrade: %+v", err)
+		return
+	}
+	log.Println("New websocket connection")
+	WSConnectionsLock.Lock()
+	WSConnections = append(WSConnections, conn)
+	WSConnectionsLock.Unlock()
 }
+
+// websocket
 
 type IRAgentMessageHandler struct {
 }
 
 func (i *IRAgentMessageHandler) OnNewMessage(msg *model.Message) {
-	log.Println("New message:", msg.Type)
+	WSConnectionsLock.RLock()
+
+	for _, wsCon := range WSConnections {
+		//_, err := wsCon.Write(data)
+		irEventId := msg.Payload.(string)
+		irEvent := model.IRMessage{}
+		dao.FindById(IREventRepo, bson.ObjectIdHex(irEventId), &irEvent)
+		irEvent.UnixTimestamp = irEvent.Timestamp.Unix()
+		wsmsg := model.WebSocketMessage{
+			Type:    msg.Type,
+			Payload: irEvent,
+		}
+		WSConnLock.Lock()
+		err := wsCon.WriteJSON(wsmsg)
+		WSConnLock.Unlock()
+		if err != nil {
+			log.Println("Fail to deliver message to socket endpoint", err.Error())
+		}
+	}
+	WSConnectionsLock.RUnlock()
 }
 
 func main() {
@@ -46,7 +85,7 @@ func main() {
 	Session = s
 	Database = Session.DB(commons.DBName)
 
-	IRMessageRepo := &repo.IREventRepo{
+	IREventRepo = &repo.IREventRepo{
 		Database: Database,
 		Session:  Session,
 	}
@@ -58,6 +97,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	defer MessageRounter.Stop()
 
 	irAgentMessageHandler := IRAgentMessageHandler{}
 
@@ -69,12 +109,21 @@ func main() {
 
 	// end messaging
 
+	// websocket
+
+	WSConnectionsLock = sync.RWMutex{}
+
+	WSConnections = make([]*websocket.Conn, 0)
+
+	//WSHander =
+	// end websocket
+
 	// web backend
 	r := gin.Default()
 
 	r.GET("/esp/v1/event/ir", func(c *gin.Context) {
 		irMessages := make([]model.IRMessage, 0)
-		err := dao.FindAllWithSort(IRMessageRepo, bson.M{}, 0, 100, "-_id", &irMessages)
+		err := dao.FindAllWithSort(IREventRepo, bson.M{}, 0, 100, "-_id", &irMessages)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
 		} else {
@@ -85,9 +134,8 @@ func main() {
 		}
 	})
 
-	r.GET("/esp/v1/ws", func(c *gin.Context) {
-		handler := websocket.Handler(EchoServer)
-		handler.ServeHTTP(c.Writer, c.Request)
+	r.GET("/esp/v1/ws/events", func(c *gin.Context) {
+		wshandler(c.Writer, c.Request)
 	})
 
 	r.Run(":80")

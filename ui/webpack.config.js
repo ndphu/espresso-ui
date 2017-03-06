@@ -34,7 +34,8 @@ module.exports = {
     historyApiFallback: true,
     proxy: {
       "/esp/v1": {
-        "target": "http://localhost"
+        "target": "http://localhost",
+        ws: true
       }
     }
   }

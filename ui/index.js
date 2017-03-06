@@ -26,5 +26,6 @@ render(
                 <Route path="/esp/automation" component={Automation}/>
                 <Route path="/esp/events" component={Events}/>
 			</Route>
+            <Redirect from='*' to='/esp/events' />
 		</Router>
 	</MuiThemeProvider>, document.getElementById('app'))
