@@ -8,6 +8,7 @@ class Events extends Component {
         this.state = {
             events: [],
             showCheckboxes: false,
+            useWs: false,
         }
     }
 
@@ -95,8 +96,12 @@ class Events extends Component {
 
         return (
             <Paper style={{margin:20}} zDepth={2}>
-                <Websocket url={this.getWebsocketUrl()}
-                    onMessage={this.onServerMessage.bind(this)}/>                
+                {this.state.useWs ? (
+                    <Websocket url={this.getWebsocketUrl()}
+                    onMessage={this.onServerMessage.bind(this)}/>) : (
+                    <div></div>
+                    )
+                }
                 <Table selectable={false}>
                     <TableHeader adjustForCheckbox={this.state.showCheckboxes} displaySelectAll={this.state.showCheckboxes}>
                       <TableRow>

@@ -19,10 +19,9 @@ import (
 
 var (
 	Session           *mgo.Session
-	Database          *mgo.Database
 	MessageRounter    *messaging.MessageRouter
 	WSConnections     []*websocket.Conn
-	WSConnectionsLock sync.RWMutex
+	WSConnectionsLock sync.Mutex = sync.Mutex{}
 	WSConnLock        sync.Mutex = sync.Mutex{}
 	WSUpgrader                   = websocket.Upgrader{
 		ReadBufferSize:  1024,
@@ -43,6 +42,28 @@ func wshandler(w http.ResponseWriter, r *http.Request) {
 	WSConnectionsLock.Lock()
 	WSConnections = append(WSConnections, conn)
 	WSConnectionsLock.Unlock()
+	for {
+		_, _, err = conn.ReadMessage()
+		if err != nil {
+			if _, ok := err.(*websocket.CloseError); ok {
+				RemoveWSConnection(conn)
+				break
+			}
+		}
+	}
+}
+
+func RemoveWSConnection(conn *websocket.Conn) {
+	WSConnectionsLock.Lock()
+	idxToRemove := -1
+	for i := 0; i < len(WSConnections); i++ {
+		if WSConnections[i] == conn {
+			idxToRemove = i
+			break
+		}
+	}
+	WSConnections = append(WSConnections[:idxToRemove], WSConnections[idxToRemove+1:]...)
+	WSConnectionsLock.Unlock()
 }
 
 // websocket
@@ -51,10 +72,10 @@ type IRAgentMessageHandler struct {
 }
 
 func (i *IRAgentMessageHandler) OnNewMessage(msg *model.Message) {
-	WSConnectionsLock.RLock()
+	WSConnectionsLock.Lock()
 
-	for _, wsCon := range WSConnections {
-		//_, err := wsCon.Write(data)
+	for idx := 0; idx < len(WSConnections); idx++ {
+		wsCon := WSConnections[idx]
 		irEventId := msg.Payload.(string)
 		irEvent := model.IRMessage{}
 		dao.FindById(IREventRepo, bson.ObjectIdHex(irEventId), &irEvent)
@@ -68,9 +89,12 @@ func (i *IRAgentMessageHandler) OnNewMessage(msg *model.Message) {
 		WSConnLock.Unlock()
 		if err != nil {
 			log.Println("Fail to deliver message to socket endpoint", err.Error())
+			if _, ok := err.(*websocket.CloseError); ok {
+				RemoveWSConnection(wsCon)
+			}
 		}
 	}
-	WSConnectionsLock.RUnlock()
+	WSConnectionsLock.Unlock()
 }
 
 func main() {
@@ -83,11 +107,9 @@ func main() {
 	}
 
 	Session = s
-	Database = Session.DB(commons.DBName)
 
 	IREventRepo = &repo.IREventRepo{
-		Database: Database,
-		Session:  Session,
+		Session: s,
 	}
 	// end database
 
@@ -110,12 +132,10 @@ func main() {
 	// end messaging
 
 	// websocket
-
-	WSConnectionsLock = sync.RWMutex{}
-
+	WSConnectionsLock.Lock()
 	WSConnections = make([]*websocket.Conn, 0)
+	WSConnectionsLock.Unlock()
 
-	//WSHander =
 	// end websocket
 
 	// web backend
@@ -136,6 +156,15 @@ func main() {
 
 	r.GET("/esp/v1/ws/events", func(c *gin.Context) {
 		wshandler(c.Writer, c.Request)
+	})
+
+	r.GET("/esp/v1/health", func(c *gin.Context) {
+		WSConnectionsLock.Lock()
+		c.JSON(http.StatusOK, gin.H{
+			"wsConnectionCount": len(WSConnections),
+			"db":                len(Session.LiveServers()) > 0,
+		})
+		WSConnectionsLock.Unlock()
 	})
 
 	r.Run(":80")
