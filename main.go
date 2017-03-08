@@ -105,12 +105,8 @@ func main() {
 		log.Println("Failed to connect to DB")
 		panic(err)
 	}
-
 	Session = s
-
-	IREventRepo = &repo.IREventRepo{
-		Session: s,
-	}
+	IREventRepo = repo.NewIREventRepo(s)
 	// end database
 
 	// messaging

@@ -8,7 +8,8 @@ class Events extends Component {
         this.state = {
             events: [],
             showCheckboxes: false,
-            useWs: false,
+            useWs: true,
+            debug: true
         }
     }
 
@@ -80,16 +81,22 @@ class Events extends Component {
         return (location.protocol.indexOf("https") == 0 ? "wss://" : "ws://") + location.host + "/esp/v1/ws/events"
     }
 
+    toISOTime(timestamp) {
+        return (new Date(timestamp).toISOString() + "").substring(11,19)
+    }
+
 
     render() {
         var now = new Date().getTime()
         var eventRows = this.state.events.map(e => 
             <TableRow key={"key-event-row-id-" + e.id} >
+                {this.state.debug ? (<TableRowColumn>{e.id}</TableRowColumn>) : (<div></div>) }                
                 <TableRowColumn>{e.remoteName}</TableRowColumn>
                 <TableRowColumn><b>{e.button}</b></TableRowColumn>
                 <TableRowColumn>{e.repeat}</TableRowColumn>
                 <TableRowColumn>{e.source}</TableRowColumn>
                 <TableRowColumn>{this.timeDifference(now, e.unixTimestamp * 1000)}</TableRowColumn>
+                {this.state.debug ? (<TableRowColumn>{this.toISOTime(e.timestamp)}</TableRowColumn>) : (<div></div>) }
             </TableRow>
         )
 
@@ -105,11 +112,13 @@ class Events extends Component {
                 <Table selectable={false}>
                     <TableHeader adjustForCheckbox={this.state.showCheckboxes} displaySelectAll={this.state.showCheckboxes}>
                       <TableRow>
+                        {this.state.debug ? (<TableHeaderColumn>ObjectId</TableHeaderColumn>) : (<div></div>) }
                         <TableHeaderColumn>Remote</TableHeaderColumn>
                         <TableHeaderColumn>Button</TableHeaderColumn>
                         <TableHeaderColumn>Repeat</TableHeaderColumn>
                         <TableHeaderColumn>Source</TableHeaderColumn>
                         <TableHeaderColumn>Timestamp</TableHeaderColumn>
+                        {this.state.debug ? (<TableHeaderColumn>ISO Timestamp</TableHeaderColumn>) : (<div></div>) }
                       </TableRow>
                     </TableHeader>
                     <TableBody 
