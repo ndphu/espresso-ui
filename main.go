@@ -139,7 +139,7 @@ func main() {
 
 	r.GET("/esp/v1/event/ir", func(c *gin.Context) {
 		irMessages := make([]model.IRMessage, 0)
-		err := dao.FindAllWithSort(IREventRepo, bson.M{}, 0, 100, "-_id", &irMessages)
+		err := dao.FindAllWithSort(IREventRepo, bson.M{}, 0, 12, "-_id", &irMessages)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
 		} else {

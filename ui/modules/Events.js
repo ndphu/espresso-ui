@@ -2,13 +2,14 @@ import React, {Component} from 'react'
 import Websocket from 'react-websocket';
 import {Table, TableBody, TableHeader, TableHeaderColumn, TableRow, TableRowColumn} from 'material-ui/Table';
 import Paper from 'material-ui/Paper';
+import Toggle from 'material-ui/Toggle';
 class Events extends Component {
     constructor(props) {
         super(props)
         this.state = {
             events: [],
             showCheckboxes: false,
-            useWs: true,
+            liveUpdate: true,
             debug: true
         }
     }
@@ -47,7 +48,8 @@ class Events extends Component {
         }
 
         else if (elapsed < msPerHour) {
-            return Math.round(elapsed/msPerMinute) + ' minutes ago';   
+            const minCount = Math.round(elapsed/msPerMinute)
+            return minCount > 1 ? (minCount + ' minutes ago') : "1 minute ago";   
         }
 
         else if (elapsed < msPerDay ) {
@@ -67,11 +69,12 @@ class Events extends Component {
         }
     }
 
-    onServerMessage(data) {
+    onServerMessage(data) {        
         let msg = JSON.parse(data);
         switch (msg.type) {
             case "IR_EVENT_ADDED": {
                 this.state.events.splice(0, 0, msg.payload)
+                this.state.events.splice(this.state.events.length - 1, 1)
                 this.setState(this.state)
             }
         }
@@ -82,7 +85,8 @@ class Events extends Component {
     }
 
     toISOTime(timestamp) {
-        return (new Date(timestamp).toISOString() + "").substring(11,19)
+        //return (new Date(timestamp).toISOString() + "").substring(11,19)
+        return (new Date(timestamp) + "").substring(16,25)
     }
 
 
@@ -90,45 +94,70 @@ class Events extends Component {
         var now = new Date().getTime()
         var eventRows = this.state.events.map(e => 
             <TableRow key={"key-event-row-id-" + e.id} >
-                {this.state.debug ? (<TableRowColumn>{e.id}</TableRowColumn>) : (<div></div>) }                
+                {this.state.debug && (<TableRowColumn>{e.id}</TableRowColumn>)}
                 <TableRowColumn>{e.remoteName}</TableRowColumn>
                 <TableRowColumn><b>{e.button}</b></TableRowColumn>
                 <TableRowColumn>{e.repeat}</TableRowColumn>
-                <TableRowColumn>{e.source}</TableRowColumn>
+                {this.state.debug && <TableRowColumn>{e.source}</TableRowColumn>}
                 <TableRowColumn>{this.timeDifference(now, e.unixTimestamp * 1000)}</TableRowColumn>
-                {this.state.debug ? (<TableRowColumn>{this.toISOTime(e.timestamp)}</TableRowColumn>) : (<div></div>) }
+                {this.state.debug && (<TableRowColumn>{this.toISOTime(e.timestamp)}</TableRowColumn>)}
             </TableRow>
         )
 
 
         return (
-            <Paper style={{margin:20}} zDepth={2}>
-                {this.state.useWs ? (
-                    <Websocket url={this.getWebsocketUrl()}
-                    onMessage={this.onServerMessage.bind(this)}/>) : (
-                    <div></div>
-                    )
-                }
-                <Table selectable={false}>
-                    <TableHeader adjustForCheckbox={this.state.showCheckboxes} displaySelectAll={this.state.showCheckboxes}>
-                      <TableRow>
-                        {this.state.debug ? (<TableHeaderColumn>ObjectId</TableHeaderColumn>) : (<div></div>) }
-                        <TableHeaderColumn>Remote</TableHeaderColumn>
-                        <TableHeaderColumn>Button</TableHeaderColumn>
-                        <TableHeaderColumn>Repeat</TableHeaderColumn>
-                        <TableHeaderColumn>Source</TableHeaderColumn>
-                        <TableHeaderColumn>Timestamp</TableHeaderColumn>
-                        {this.state.debug ? (<TableHeaderColumn>ISO Timestamp</TableHeaderColumn>) : (<div></div>) }
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody 
-                        stripedRows={true} 
-                        showRowHover={true} 
-                        displayRowCheckbox={this.state.showCheckboxes}>
-                        {eventRows}                  
-                    </TableBody>
-                </Table>
-          </Paper>
+            <div>
+                <Toggle
+                  label="Live Update"
+                  defaultToggled={true}
+                  onToggle={(e,liveUpdate)=>{
+                        this.setState({
+                            liveUpdate: liveUpdate
+                        })}
+                    }
+                  labelPosition="right"
+                  style={{margin: 20}}
+                />
+                <Toggle
+                  label="Debug"
+                  defaultToggled={true}
+                  onToggle={(e,debug)=>{
+                        this.setState({
+                            debug: debug
+                        })}
+                    }
+                  labelPosition="right"
+                  style={{margin: 20}}
+                />
+                <Paper style={{margin:20}} zDepth={2}>                
+                        {this.state.liveUpdate ? (
+                            <Websocket url={this.getWebsocketUrl()}
+                            onMessage={this.onServerMessage.bind(this)}/>) : (
+                            <div></div>
+                            )
+                        }
+                    <Table selectable={false}>
+                        <TableHeader adjustForCheckbox={this.state.showCheckboxes} displaySelectAll={this.state.showCheckboxes}>
+                          <TableRow>
+                            {this.state.debug && (<TableHeaderColumn>ObjectId</TableHeaderColumn>)}
+                            <TableHeaderColumn>Remote</TableHeaderColumn>
+                            <TableHeaderColumn>Button</TableHeaderColumn>
+                            <TableHeaderColumn>Repeat</TableHeaderColumn>
+                            {this.state.debug && <TableHeaderColumn>Source</TableHeaderColumn>}
+                            <TableHeaderColumn>When</TableHeaderColumn>
+                            {this.state.debug && (<TableHeaderColumn>Timestamp</TableHeaderColumn>)}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody 
+                            stripedRows={true} 
+                            showRowHover={true} 
+                            displayRowCheckbox={this.state.showCheckboxes}>
+                            {eventRows}                  
+                        </TableBody>
+                    </Table>
+                </Paper>
+            </div>
+            
         )
     }
 }
