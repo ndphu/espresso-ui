@@ -9,6 +9,7 @@ import (
 	"github.com/ndphu/espresso-commons/messaging"
 	"github.com/ndphu/espresso-commons/model"
 	"github.com/ndphu/espresso-commons/repo"
+	"github.com/ndphu/espresso-ui/handler"
 	"gopkg.in/gin-gonic/gin.v1"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -136,6 +137,9 @@ func main() {
 
 	// web backend
 	r := gin.Default()
+
+	// handle devices
+	handler.AddDeviceHandler(Session, r)
 
 	r.GET("/esp/v1/event/ir", func(c *gin.Context) {
 		irMessages := make([]model.IRMessage, 0)
