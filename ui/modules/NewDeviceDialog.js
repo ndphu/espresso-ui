@@ -38,10 +38,10 @@ class NewDeviceDialog extends Component {
 		    hearders: {
 		    	'Content-Type': 'application/json'
 		    }
-		}).then(function(res) {
-			return res.json();
-		}).then(function(data) { 
-			if (data[error]) {
+		})
+		.then(response => response.json())
+		.then((data) => { 
+			if (data.error) {
 				alert(data[error])
 			} else {
 				this.handleClose()

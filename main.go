@@ -7,8 +7,9 @@ import (
 	"github.com/ndphu/espresso-commons"
 	"github.com/ndphu/espresso-commons/dao"
 	"github.com/ndphu/espresso-commons/messaging"
-	"github.com/ndphu/espresso-commons/model"
+	"github.com/ndphu/espresso-commons/model/event"
 	"github.com/ndphu/espresso-commons/repo"
+	"github.com/ndphu/espresso-commons/ws"
 	"github.com/ndphu/espresso-ui/handler"
 	"gopkg.in/gin-gonic/gin.v1"
 	"gopkg.in/mgo.v2"
@@ -72,13 +73,13 @@ func RemoveWSConnection(conn *websocket.Conn) {
 type IRAgentMessageHandler struct {
 }
 
-func (i *IRAgentMessageHandler) OnNewMessage(msg *model.Message) {
+func (i *IRAgentMessageHandler) OnNewMessage(msg *messaging.Message) {
 	WSConnectionsLock.Lock()
 
 	for idx := 0; idx < len(WSConnections); idx++ {
 		wsCon := WSConnections[idx]
 		irEventId := msg.Payload.(string)
-		irEvent := model.IRMessage{}
+		irEvent := event.IREvent{}
 		dao.FindById(IREventRepo, bson.ObjectIdHex(irEventId), &irEvent)
 		irEvent.UnixTimestamp = irEvent.Timestamp.Unix()
 		wsmsg := model.WebSocketMessage{
@@ -141,16 +142,19 @@ func main() {
 	// handle devices
 	handler.AddDeviceHandler(Session, r)
 
+	// handle commands
+	handler.AddCommandHandler(Session, r)
+
 	r.GET("/esp/v1/event/ir", func(c *gin.Context) {
-		irMessages := make([]model.IRMessage, 0)
-		err := dao.FindAllWithSort(IREventRepo, bson.M{}, 0, 12, "-_id", &irMessages)
+		irEvents := make([]event.IREvent, 0)
+		err := dao.FindAllWithSort(IREventRepo, bson.M{}, 0, 12, "-_id", &irEvents)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
 		} else {
-			for i := 0; i < len(irMessages); i++ {
-				irMessages[i].UnixTimestamp = irMessages[i].Timestamp.Unix()
+			for i := 0; i < len(irEvents); i++ {
+				irEvents[i].UnixTimestamp = irEvents[i].Timestamp.Unix()
 			}
-			c.JSON(http.StatusOK, irMessages)
+			c.JSON(http.StatusOK, irEvents)
 		}
 	})
 
