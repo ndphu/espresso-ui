@@ -3,7 +3,7 @@ import RaisedButton from 'material-ui/RaisedButton'
 import NewDeviceDialog from './NewDeviceDialog'
 import DeviceList from './DeviceList'
 import DeviceControllerDialog from './DeviceControllerDialog'
-
+import Helper from '../Helper'
 
 class Device extends Component {
     constructor(props) {
@@ -12,7 +12,7 @@ class Device extends Component {
         	showAddDialog: false,
             showDeviceController: false,
             devices: [],
-            selectedDevice: {"nane":"haha"},
+            selectedDevice: {},
         }
     }
 
@@ -42,6 +42,22 @@ class Device extends Component {
         })
     }
 
+    onUnknowDeviceClick(device) {        
+        const newDeviceName = prompt("Enter new device name")
+        device.name = newDeviceName
+        device.managed = true
+
+        this.refs.helper.putDevice(device)
+        .then(res => res.json())
+        .then(json => {
+            if (json.error) {
+                alert(json.error)
+            } else {
+                this.setState(this.state)
+            }
+        })
+    }
+
     render() {
         var managedDevices = []
         var unknowDevices = []
@@ -56,21 +72,30 @@ class Device extends Component {
 
         return (
             <div style={{margin: "16px"}}>
+                <Helper ref="helper"/>
             	<RaisedButton 
 	            	label="New Device" 
 	            	primary={true} 
 	            	onTouchTap={()=>{this.setState({showAddDialog: true})}}/>
-	            <NewDeviceDialog showDialog={this.state.showAddDialog} dialogCloseCallback={()=>{this.dialogCloseCallback()}}/>
-                <DeviceList 
-                    deviceClickHandler={(device)=>{this.onDeviceClick(device)}} 
-                    devices={managedDevices} 
-                    deviceCategory="Managed Devices"/>
-                <DeviceList devices={unknowDevices} deviceCategory="Unknown Devices"></DeviceList>
+	            
+                        <DeviceList 
+                            deviceClickHandler={(device)=>{this.onDeviceClick(device)}} 
+                            devices={managedDevices} 
+                            deviceCategory="Managed Devices"
+                        />
+
+                        <DeviceList 
+                            deviceClickHandler={(device)=>{this.onUnknowDeviceClick(device)}}
+                            devices={unknowDevices} 
+                            deviceCategory="Unknown Devices"                    
+                        />
+                
 
                 <DeviceControllerDialog 
                     device={this.state.selectedDevice}
                     showDialog={this.state.showDeviceController} 
                     dialogCloseCallback={()=>{this.setState({showDeviceController:false})}}/>
+                <NewDeviceDialog showDialog={this.state.showAddDialog} dialogCloseCallback={()=>{this.dialogCloseCallback()}}/>
             </div>
         )
     }

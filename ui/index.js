@@ -5,7 +5,7 @@ import injectTapEventPlugin from 'react-tap-event-plugin'
 import { render } from 'react-dom'
 import { Router, Route, browserHistory , IndexRoute, Redirect } from 'react-router'
 import App from './modules/App'
-import Devices from './modules/Devices'
+import Devices from './modules/device/Devices'
 import Events from './modules/Events'
 import Automation from './modules/Automation'
 

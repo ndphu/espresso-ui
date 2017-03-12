@@ -27,6 +27,7 @@ class DeviceControllerDialog extends Component {
 					/>
 				}
 				open={this.props.showDialog}
+				autoScrollBodyContent={true}
 				>
 				<DeviceController device={this.props.device}/>
 			</Dialog>

@@ -78,12 +78,12 @@ func (i *IRAgentMessageHandler) OnNewMessage(msg *messaging.Message) {
 
 	for idx := 0; idx < len(WSConnections); idx++ {
 		wsCon := WSConnections[idx]
-		irEventId := msg.Payload.(string)
+		irEventId := msg.Payload
 		irEvent := event.IREvent{}
 		dao.FindById(IREventRepo, bson.ObjectIdHex(irEventId), &irEvent)
 		irEvent.UnixTimestamp = irEvent.Timestamp.Unix()
 		wsmsg := model.WebSocketMessage{
-			Type:    msg.Type,
+			Type:    string(msg.Type),
 			Payload: irEvent,
 		}
 		WSConnLock.Lock()
@@ -113,7 +113,7 @@ func main() {
 
 	// messaging
 	log.Println("Connecting to broker...")
-	MessageRounter, err = messaging.NewMessageRouter("127.0.0.1", 1883, "", "", fmt.Sprintf("espresso-ui-%d", commons.GetRandom()))
+	MessageRounter, err = messaging.NewMessageRouter("19november.freeddns.org", 5370, "", "", fmt.Sprintf("espresso-ui-%d", commons.GetRandom()))
 	if err != nil {
 		panic(err)
 	}
@@ -143,7 +143,7 @@ func main() {
 	handler.AddDeviceHandler(Session, r)
 
 	// handle commands
-	handler.AddCommandHandler(Session, r)
+	handler.AddCommandHandler(Session, r, MessageRounter)
 
 	r.GET("/esp/v1/event/ir", func(c *gin.Context) {
 		irEvents := make([]event.IREvent, 0)

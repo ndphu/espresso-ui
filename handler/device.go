@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"errors"
+	"fmt"
 	"github.com/ndphu/espresso-commons/dao"
 	"github.com/ndphu/espresso-commons/model/device"
 	"github.com/ndphu/espresso-commons/repo"
@@ -14,7 +16,7 @@ func AddDeviceHandler(s *mgo.Session, e *gin.Engine) {
 	deviceRepo := repo.NewDeviceRepo(s)
 	// all devices
 	e.GET("/esp/v1/devices", func(c *gin.Context) {
-		var devices []interface{}
+		devices := make([]interface{}, 0)
 		err := dao.FindAll(deviceRepo, bson.M{}, 0, 100, &devices)
 		if err != nil {
 			returnError(c, err)
@@ -48,6 +50,29 @@ func AddDeviceHandler(s *mgo.Session, e *gin.Engine) {
 				returnError(c, err)
 			} else {
 				c.JSON(http.StatusOK, device)
+			}
+		}
+	})
+
+	// update an existing device
+	e.PUT("/esp/v1/device/:id", func(c *gin.Context) {
+		var d device.Device
+
+		err := c.BindJSON(&d)
+		//err := dao.FindById(deviceRepo, c.Params.Get("id"), &d)
+		if err != nil {
+			returnError(c, err)
+		} else if d.Id.Hex() != c.Param("id") {
+			//c.JSON(http.StatusInternalServerError, "Id in the path is different with the body entity")
+			es := fmt.Sprintf("Id in the path [%s] is different with the Id in body [%s]", c.Param("id"), d.Id.Hex())
+			fmt.Println(es)
+			returnError(c, errors.New(es))
+		} else {
+			err := dao.Update(deviceRepo, &d)
+			if err != nil {
+				returnError(c, err)
+			} else {
+				c.JSON(http.StatusOK, d)
 			}
 		}
 	})

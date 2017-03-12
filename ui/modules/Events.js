@@ -93,8 +93,8 @@ class Events extends Component {
     render() {
         var now = new Date().getTime()
         var eventRows = this.state.events.map(e => 
-            <TableRow key={"key-event-row-id-" + e.id} >
-                {this.state.debug && (<TableRowColumn>{e.id}</TableRowColumn>)}
+            <TableRow key={"key-event-row-id-" + e._id} >
+                {this.state.debug && (<TableRowColumn>{e._id}</TableRowColumn>)}
                 <TableRowColumn>{e.remoteName}</TableRowColumn>
                 <TableRowColumn><b>{e.button}</b></TableRowColumn>
                 <TableRowColumn>{e.repeat}</TableRowColumn>
