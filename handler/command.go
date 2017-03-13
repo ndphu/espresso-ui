@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/ndphu/espresso-commons/dao"
 	"github.com/ndphu/espresso-commons/messaging"
@@ -29,17 +28,11 @@ func AddCommandHandler(s *mgo.Session, e *gin.Engine, msgr *messaging.MessageRou
 			if err != nil {
 				returnError(c, err)
 			} else {
-				//json
-				data, err := json.Marshal(tc)
-				if err != nil {
-					returnError(c, err)
-				}
-
 				msg := messaging.Message{
 					Destination: messaging.MessageDestination_TextCommand,
 					Source:      messaging.MessageSource_UI,
 					Type:        messaging.MessageType_ExecuteTextCommand,
-					Payload:     string(data),
+					Payload:     tc.Id.Hex(),
 				}
 
 				err = msgr.Publish(msg)
@@ -65,17 +58,11 @@ func AddCommandHandler(s *mgo.Session, e *gin.Engine, msgr *messaging.MessageRou
 			if err != nil {
 				returnError(c, err)
 			} else {
-				//json
-				data, err := json.Marshal(gc)
-				if err != nil {
-					returnError(c, err)
-				}
-
 				msg := messaging.Message{
 					Destination: messaging.MessageDestination_GPIOCommand,
 					Source:      messaging.MessageSource_UI,
 					Type:        messaging.MessageType_ExecuteGPIOCommand,
-					Payload:     string(data),
+					Payload:     gc.Id.Hex(),
 				}
 
 				err = msgr.Publish(msg)

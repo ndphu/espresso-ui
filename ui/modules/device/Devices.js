@@ -1,4 +1,5 @@
 import React, {Component} from 'react'
+import Websocket from 'react-websocket';
 import RaisedButton from 'material-ui/RaisedButton'
 import NewDeviceDialog from './NewDeviceDialog'
 import DeviceList from './DeviceList'
@@ -13,11 +14,38 @@ class Device extends Component {
             showDeviceController: false,
             devices: [],
             selectedDevice: {},
+            liveUpdate: true,
         }
     }
 
     componentDidMount() {
         this.fetchData()
+    }
+
+    getWebsocketUrl() { 
+        return (location.protocol.indexOf("https") == 0 ? "wss://" : "ws://") + location.host + "/esp/v1/ws/devices"
+    }
+
+    onServerMessage(data) {
+        let msg = JSON.parse(data);
+        switch (msg.type) {
+        case "DEVICE_OFFLINE":
+            this.__updateDevice(msg.payload)
+            break;
+        case "DEVICE_ONLINE":
+            this.__updateDevice(msg.payload)
+            break;
+        }
+    }
+
+    __updateDevice(device) {
+        for (var i = 0; i < this.state.devices.length; ++i) {
+            if (this.state.devices[i]._id == device._id) {
+                this.state.devices[i] = device;
+                this.setState(this.state)
+                break;
+            }
+        }
     }
 
     fetchData() {
@@ -35,7 +63,6 @@ class Device extends Component {
     }
 
     onDeviceClick(device) {
-        console.log(device)
         this.setState({
             selectedDevice: device,
             showDeviceController: true            
@@ -44,18 +71,20 @@ class Device extends Component {
 
     onUnknowDeviceClick(device) {        
         const newDeviceName = prompt("Enter new device name")
-        device.name = newDeviceName
-        device.managed = true
+        if (newDeviceName != undefined && newDeviceName != "") {
+            device.name = newDeviceName
+            device.managed = true
 
-        this.refs.helper.putDevice(device)
-        .then(res => res.json())
-        .then(json => {
-            if (json.error) {
-                alert(json.error)
-            } else {
-                this.setState(this.state)
-            }
-        })
+            this.refs.helper.putDevice(device)
+            .then(res => res.json())
+            .then(json => {
+                if (json.error) {
+                    alert(json.error)
+                } else {
+                    this.setState(this.state)
+                }
+            })
+        }
     }
 
     render() {
@@ -72,6 +101,7 @@ class Device extends Component {
 
         return (
             <div style={{margin: "16px"}}>
+                {this.state.liveUpdate && <Websocket url={this.getWebsocketUrl()} onMessage={this.onServerMessage.bind(this)}/>}
                 <Helper ref="helper"/>
             	<RaisedButton 
 	            	label="New Device" 

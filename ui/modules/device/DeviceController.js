@@ -73,8 +73,9 @@ class DeviceController extends Component {
 		return (
 			<div>			
 				<Helper ref="helper"/>	
+				<h5>Test</h5>
 				<RaisedButton label="Test Blink" primary onTouchTap={(e)=>{this.testBlink()}}/>
-				<h4>GPIO</h4>
+				<h5>GPIO</h5>
 				<span>
 					<DropDownMenu value={this.state.gpio} onChange={(event, index, value)=>{this.handleChange(event, index, value)}}>
 						{gpioPinMenuItems}
@@ -85,7 +86,7 @@ class DeviceController extends Component {
 					</DropDownMenu>					
 				</span><br/>
 				<RaisedButton label="Set" primary onTouchTap={(e)=>{this.sendGpioCommand()}}/>
-				<h4>Debug</h4>
+				<h5>Debug</h5>
 				<TextField
 					ref="textFieldCommand"
 			      	hintText="The command to send"

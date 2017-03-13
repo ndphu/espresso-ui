@@ -7,6 +7,7 @@ import (
 	"github.com/ndphu/espresso-commons"
 	"github.com/ndphu/espresso-commons/dao"
 	"github.com/ndphu/espresso-commons/messaging"
+	"github.com/ndphu/espresso-commons/model/device"
 	"github.com/ndphu/espresso-commons/model/event"
 	"github.com/ndphu/espresso-commons/repo"
 	"github.com/ndphu/espresso-commons/ws"
@@ -30,6 +31,7 @@ var (
 		WriteBufferSize: 1024,
 	}
 	IREventRepo *repo.IREventRepo
+	DeviceRepo  *repo.DeviceRepo
 )
 
 // websocket
@@ -74,18 +76,42 @@ type IRAgentMessageHandler struct {
 }
 
 func (i *IRAgentMessageHandler) OnNewMessage(msg *messaging.Message) {
-	WSConnectionsLock.Lock()
+	irEventId := msg.Payload
+	irEvent := event.IREvent{}
+	dao.FindById(IREventRepo, bson.ObjectIdHex(irEventId), &irEvent)
+	irEvent.UnixTimestamp = irEvent.Timestamp.Unix()
+	wsmsg := model.WebSocketMessage{
+		Type:    string(msg.Type),
+		Payload: irEvent,
+	}
 
-	for idx := 0; idx < len(WSConnections); idx++ {
-		wsCon := WSConnections[idx]
-		irEventId := msg.Payload
-		irEvent := event.IREvent{}
-		dao.FindById(IREventRepo, bson.ObjectIdHex(irEventId), &irEvent)
-		irEvent.UnixTimestamp = irEvent.Timestamp.Unix()
+	broadcastMessage(&wsmsg)
+}
+
+type DeviceUpdateMessageHandler struct {
+}
+
+func (d *DeviceUpdateMessageHandler) OnNewMessage(msg *messaging.Message) {
+	deviceId := msg.Payload
+	device := device.Device{}
+	err := dao.FindById(DeviceRepo, bson.ObjectIdHex(deviceId), &device)
+	if err != nil {
+		log.Println("Failed to get device with id", deviceId, "error", err)
+	} else {
 		wsmsg := model.WebSocketMessage{
 			Type:    string(msg.Type),
-			Payload: irEvent,
+			Payload: device,
 		}
+
+		broadcastMessage(&wsmsg)
+	}
+}
+
+func broadcastMessage(wsmsg *model.WebSocketMessage) {
+	WSConnectionsLock.Lock()
+	for idx := 0; idx < len(WSConnections); idx++ {
+		wsCon := WSConnections[idx]
+
 		WSConnLock.Lock()
 		err := wsCon.WriteJSON(wsmsg)
 		WSConnLock.Unlock()
@@ -97,6 +123,7 @@ func (i *IRAgentMessageHandler) OnNewMessage(msg *messaging.Message) {
 		}
 	}
 	WSConnectionsLock.Unlock()
+
 }
 
 func main() {
@@ -109,16 +136,18 @@ func main() {
 	}
 	Session = s
 	IREventRepo = repo.NewIREventRepo(s)
+	DeviceRepo = repo.NewDeviceRepo(s)
 	// end database
 
 	// messaging
 	log.Println("Connecting to broker...")
-	MessageRounter, err = messaging.NewMessageRouter("19november.freeddns.org", 5370, "", "", fmt.Sprintf("espresso-ui-%d", commons.GetRandom()))
+	MessageRounter, err = messaging.NewMessageRouter(commons.BrokerHost, commons.BrokerPort, "", "", fmt.Sprintf("espresso-ui-%d", commons.GetRandom()))
 	if err != nil {
 		panic(err)
 	}
 	defer MessageRounter.Stop()
 
+	// ir event handler
 	irAgentMessageHandler := IRAgentMessageHandler{}
 
 	err = MessageRounter.Subscribe(commons.IRAgentEventTopic, &irAgentMessageHandler)
@@ -126,6 +155,17 @@ func main() {
 		panic(err)
 	}
 	defer MessageRounter.Unsubscribe(commons.IRAgentEventTopic, &irAgentMessageHandler)
+	// end ir event handler
+
+	// device event handler
+	deviceEventHandler := DeviceUpdateMessageHandler{}
+
+	err = MessageRounter.Subscribe(string(messaging.MessageDestination_DeviceUpdated), &deviceEventHandler)
+	if err != nil {
+		panic(err)
+	}
+	defer MessageRounter.Unsubscribe(string(messaging.MessageDestination_DeviceUpdated), &deviceEventHandler)
+	// end device event handler
 
 	// end messaging
 
@@ -159,6 +199,9 @@ func main() {
 	})
 
 	r.GET("/esp/v1/ws/events", func(c *gin.Context) {
+		wshandler(c.Writer, c.Request)
+	})
+	r.GET("/esp/v1/ws/devices", func(c *gin.Context) {
 		wshandler(c.Writer, c.Request)
 	})
 
