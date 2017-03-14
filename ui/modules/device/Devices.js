@@ -35,13 +35,38 @@ class Device extends Component {
         case "DEVICE_ONLINE":
             this.__updateDevice(msg.payload)
             break;
+        case "DEVICE_UPDATED":
+            this.__updateDevice(msg.payload)
+            break;
+        case "DEVICE_ADDED":
+            this.__addDevice(msg.payload)
+            break;
+        case "DEVICE_REMOVED":
+            this.__removeDeviceById(msg.payload)
+            break;
         }
+
     }
 
     __updateDevice(device) {
         for (var i = 0; i < this.state.devices.length; ++i) {
             if (this.state.devices[i]._id == device._id) {
                 this.state.devices[i] = device;
+                this.setState(this.state)
+                break;
+            }
+        }
+    }
+
+    __addDevice(device) {
+        this.state.devices.push(device)
+        this.setState(this.state)
+    }
+
+    __removeDeviceById(id) {
+        for (var i = 0; i < this.state.devices.length; ++i) {
+            if (this.state.devices[i]._id == id) {
+                this.state.devices.splice(i, 1)
                 this.setState(this.state)
                 break;
             }

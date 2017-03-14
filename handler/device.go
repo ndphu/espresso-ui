@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ndphu/espresso-commons/dao"
+	"github.com/ndphu/espresso-commons/messaging"
 	"github.com/ndphu/espresso-commons/model/device"
 	"github.com/ndphu/espresso-commons/repo"
 	"gopkg.in/gin-gonic/gin.v1"
@@ -12,12 +13,12 @@ import (
 	"net/http"
 )
 
-func AddDeviceHandler(s *mgo.Session, e *gin.Engine) {
+func AddDeviceHandler(s *mgo.Session, e *gin.Engine, msgr *messaging.MessageRouter) {
 	deviceRepo := repo.NewDeviceRepo(s)
 	// all devices
 	e.GET("/esp/v1/devices", func(c *gin.Context) {
 		devices := make([]interface{}, 0)
-		err := dao.FindAll(deviceRepo, bson.M{}, 0, 100, &devices)
+		err := dao.FindAll(deviceRepo, bson.M{"deleted": false}, 0, 100, &devices)
 		if err != nil {
 			returnError(c, err)
 		} else {
@@ -50,6 +51,7 @@ func AddDeviceHandler(s *mgo.Session, e *gin.Engine) {
 				returnError(c, err)
 			} else {
 				c.JSON(http.StatusOK, device)
+				broadcastDeviceAdded(msgr, device.Id.Hex())
 			}
 		}
 	})
@@ -73,21 +75,60 @@ func AddDeviceHandler(s *mgo.Session, e *gin.Engine) {
 				returnError(c, err)
 			} else {
 				c.JSON(http.StatusOK, d)
+				broadcastDeviceUpdated(msgr, c.Param("id"))
 			}
 		}
 	})
-
-	e.GET("/esp/v1/devices/unknownSerial", func(c *gin.Context) {
-		unknownDevices := make([]device.Device, 0)
-		err := dao.FindAll(deviceRepo, bson.M{"managed": false}, 0, 9999, &unknownDevices)
+	// delete a device
+	e.DELETE("/esp/v1/device/:id", func(c *gin.Context) {
+		var d device.Device
+		err := dao.FindById(deviceRepo, bson.ObjectIdHex(c.Param("id")), &d)
+		//err := dao.Delete(deviceRepo, bson.ObjectIdHex(c.Param("id")))
 		if err != nil {
 			returnError(c, err)
 		} else {
-			result := make([]string, len(unknownDevices))
-			for i := 0; i < len(unknownDevices); i++ {
-				result[i] = unknownDevices[i].Serial
+			d.Deleted = true
+			err := dao.Update(deviceRepo, &d)
+			if err != nil {
+				returnError(c, err)
+			} else {
+				c.JSON(http.StatusOK, d)
+				broadcastDeviceDeleted(msgr, c.Param("id"))
 			}
-			c.JSON(http.StatusOK, &result)
+
 		}
 	})
+}
+
+func broadcastDeviceDeleted(msgr *messaging.MessageRouter, deviceId string) {
+	msg := messaging.Message{
+		Destination: messaging.MessageDestination_DeviceUpdated,
+		Type:        messaging.MessageType_DeviceRemoved,
+		Source:      messaging.MessageSource_UI,
+		Payload:     deviceId,
+	}
+
+	msgr.Publish(msg)
+}
+
+func broadcastDeviceAdded(msgr *messaging.MessageRouter, deviceId string) {
+	msg := messaging.Message{
+		Destination: messaging.MessageDestination_DeviceUpdated,
+		Type:        messaging.MessageType_DeviceAdded,
+		Source:      messaging.MessageSource_UI,
+		Payload:     deviceId,
+	}
+
+	msgr.Publish(msg)
+}
+
+func broadcastDeviceUpdated(msgr *messaging.MessageRouter, deviceId string) {
+	msg := messaging.Message{
+		Destination: messaging.MessageDestination_DeviceUpdated,
+		Type:        messaging.MessageType_DeviceUpdated,
+		Source:      messaging.MessageSource_UI,
+		Payload:     deviceId,
+	}
+
+	msgr.Publish(msg)
 }

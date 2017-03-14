@@ -93,16 +93,27 @@ type DeviceUpdateMessageHandler struct {
 
 func (d *DeviceUpdateMessageHandler) OnNewMessage(msg *messaging.Message) {
 	deviceId := msg.Payload
-	device := device.Device{}
-	err := dao.FindById(DeviceRepo, bson.ObjectIdHex(deviceId), &device)
-	if err != nil {
-		log.Println("Failed to get device with id", deviceId, "error", err)
-	} else {
-		wsmsg := model.WebSocketMessage{
-			Type:    string(msg.Type),
-			Payload: device,
-		}
+	var wsmsg model.WebSocketMessage
 
+	if msg.Type == messaging.MessageType_DeviceRemoved {
+		wsmsg = model.WebSocketMessage{
+			Type:    string(msg.Type),
+			Payload: deviceId,
+		}
+	} else {
+		device := device.Device{}
+		err := dao.FindById(DeviceRepo, bson.ObjectIdHex(deviceId), &device)
+		if err != nil {
+			log.Println("Failed to get device with id", deviceId, "error", err)
+		} else {
+			wsmsg = model.WebSocketMessage{
+				Type:    string(msg.Type),
+				Payload: device,
+			}
+
+		}
+	}
+	if len(wsmsg.Type) > 0 {
 		broadcastMessage(&wsmsg)
 	}
 }
@@ -180,7 +191,7 @@ func main() {
 	r := gin.Default()
 
 	// handle devices
-	handler.AddDeviceHandler(Session, r)
+	handler.AddDeviceHandler(Session, r, MessageRounter)
 
 	// handle commands
 	handler.AddCommandHandler(Session, r, MessageRounter)

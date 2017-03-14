@@ -30,6 +30,13 @@ class Helper extends Component {
         })
     }
 
+    deleteDevice(device) {
+        return fetch("/esp/v1/device/" + device._id, {
+            method: "DELETE"
+        })
+    }
+
+
     render() {
         return (<div></div>)
     }

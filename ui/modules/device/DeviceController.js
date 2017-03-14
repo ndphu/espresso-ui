@@ -33,8 +33,6 @@ class DeviceController extends Component {
 		.then(json => {
             if (json.error) {
                 alert(json.error)
-            } else {
-                console.log(json)
             }
         })
 	}
@@ -53,9 +51,7 @@ class DeviceController extends Component {
 		}).then(response => response.json()).then(json => {
 			if (json.error) {
 				alert(json.error)
-			} else {
-				console.log(json)
-			}
+			} 
 		})
 	}
 

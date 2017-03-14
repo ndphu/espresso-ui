@@ -11,11 +11,9 @@ class DeviceControllerDialog extends Component {
 	}
 
 	componentWillReceiveProps(nextProps) {
-		console.log(nextProps)
 	}
 
 	render() {
-		console.log(this.props.device)
 		return (
 			<Dialog title={this.props.device ? this.props.device.name : ""}
 				modal={true}
