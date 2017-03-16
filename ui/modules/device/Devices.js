@@ -42,7 +42,7 @@ class Device extends Component {
             this.__addDevice(msg.payload)
             break;
         case "DEVICE_REMOVED":
-            this.__removeDeviceById(msg.payload)
+            this.__removeDevice(msg.payload)
             break;
         }
 
@@ -63,9 +63,9 @@ class Device extends Component {
         this.setState(this.state)
     }
 
-    __removeDeviceById(id) {
+    __removeDevice(device) {
         for (var i = 0; i < this.state.devices.length; ++i) {
-            if (this.state.devices[i]._id == id) {
+            if (this.state.devices[i]._id == device._id) {
                 this.state.devices.splice(i, 1)
                 this.setState(this.state)
                 break;

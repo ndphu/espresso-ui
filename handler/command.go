@@ -29,9 +29,9 @@ func AddCommandHandler(s *mgo.Session, e *gin.Engine, msgr *messaging.MessageRou
 				returnError(c, err)
 			} else {
 				msg := messaging.Message{
-					Destination: messaging.MessageDestination_TextCommand,
-					Source:      messaging.MessageSource_UI,
-					Type:        messaging.MessageType_ExecuteTextCommand,
+					Destination: messaging.IPCCommand,
+					Source:      messaging.UI,
+					Type:        messaging.TextCommandAdded,
 					Payload:     tc.Id.Hex(),
 				}
 
@@ -59,9 +59,9 @@ func AddCommandHandler(s *mgo.Session, e *gin.Engine, msgr *messaging.MessageRou
 				returnError(c, err)
 			} else {
 				msg := messaging.Message{
-					Destination: messaging.MessageDestination_GPIOCommand,
-					Source:      messaging.MessageSource_UI,
-					Type:        messaging.MessageType_ExecuteGPIOCommand,
+					Destination: messaging.IPCCommand,
+					Source:      messaging.UI,
+					Type:        messaging.GPIOCommandAdded,
 					Payload:     gc.Id.Hex(),
 				}
 

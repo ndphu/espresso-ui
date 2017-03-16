@@ -95,23 +95,16 @@ func (d *DeviceUpdateMessageHandler) OnNewMessage(msg *messaging.Message) {
 	deviceId := msg.Payload
 	var wsmsg model.WebSocketMessage
 
-	if msg.Type == messaging.MessageType_DeviceRemoved {
+	device := device.Device{}
+	err := dao.FindById(DeviceRepo, bson.ObjectIdHex(deviceId), &device)
+	if err != nil {
+		log.Println("Failed to get device with id", deviceId, "error", err)
+	} else {
 		wsmsg = model.WebSocketMessage{
 			Type:    string(msg.Type),
-			Payload: deviceId,
+			Payload: device,
 		}
-	} else {
-		device := device.Device{}
-		err := dao.FindById(DeviceRepo, bson.ObjectIdHex(deviceId), &device)
-		if err != nil {
-			log.Println("Failed to get device with id", deviceId, "error", err)
-		} else {
-			wsmsg = model.WebSocketMessage{
-				Type:    string(msg.Type),
-				Payload: device,
-			}
 
-		}
 	}
 	if len(wsmsg.Type) > 0 {
 		broadcastMessage(&wsmsg)
@@ -171,11 +164,11 @@ func main() {
 	// device event handler
 	deviceEventHandler := DeviceUpdateMessageHandler{}
 
-	err = MessageRounter.Subscribe(string(messaging.MessageDestination_DeviceUpdated), &deviceEventHandler)
+	err = MessageRounter.Subscribe(string(messaging.IPCDevice), &deviceEventHandler)
 	if err != nil {
 		panic(err)
 	}
-	defer MessageRounter.Unsubscribe(string(messaging.MessageDestination_DeviceUpdated), &deviceEventHandler)
+	defer MessageRounter.Unsubscribe(string(messaging.IPCDevice), &deviceEventHandler)
 	// end device event handler
 
 	// end messaging

@@ -93,42 +93,32 @@ func AddDeviceHandler(s *mgo.Session, e *gin.Engine, msgr *messaging.MessageRout
 				returnError(c, err)
 			} else {
 				c.JSON(http.StatusOK, d)
-				broadcastDeviceDeleted(msgr, c.Param("id"))
+				broadcastDeviceRemoved(msgr, c.Param("id"))
 			}
 
 		}
 	})
 }
 
-func broadcastDeviceDeleted(msgr *messaging.MessageRouter, deviceId string) {
+func doBroadcastDeviceMessage(msgr *messaging.MessageRouter, deviceId string, msgType messaging.MessageType) {
 	msg := messaging.Message{
-		Destination: messaging.MessageDestination_DeviceUpdated,
-		Type:        messaging.MessageType_DeviceRemoved,
-		Source:      messaging.MessageSource_UI,
+		Destination: messaging.IPCDevice,
+		Type:        msgType,
+		Source:      messaging.UI,
 		Payload:     deviceId,
 	}
 
 	msgr.Publish(msg)
+}
+
+func broadcastDeviceRemoved(msgr *messaging.MessageRouter, deviceId string) {
+	doBroadcastDeviceMessage(msgr, deviceId, messaging.DeviceRemoved)
 }
 
 func broadcastDeviceAdded(msgr *messaging.MessageRouter, deviceId string) {
-	msg := messaging.Message{
-		Destination: messaging.MessageDestination_DeviceUpdated,
-		Type:        messaging.MessageType_DeviceAdded,
-		Source:      messaging.MessageSource_UI,
-		Payload:     deviceId,
-	}
-
-	msgr.Publish(msg)
+	doBroadcastDeviceMessage(msgr, deviceId, messaging.DeviceAdded)
 }
 
 func broadcastDeviceUpdated(msgr *messaging.MessageRouter, deviceId string) {
-	msg := messaging.Message{
-		Destination: messaging.MessageDestination_DeviceUpdated,
-		Type:        messaging.MessageType_DeviceUpdated,
-		Source:      messaging.MessageSource_UI,
-		Payload:     deviceId,
-	}
-
-	msgr.Publish(msg)
+	doBroadcastDeviceMessage(msgr, deviceId, messaging.DeviceUpdated)
 }
