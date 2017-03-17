@@ -151,16 +151,6 @@ func main() {
 	}
 	defer MessageRounter.Stop()
 
-	// ir event handler
-	irAgentMessageHandler := IRAgentMessageHandler{}
-
-	err = MessageRounter.Subscribe(commons.IRAgentEventTopic, &irAgentMessageHandler)
-	if err != nil {
-		panic(err)
-	}
-	defer MessageRounter.Unsubscribe(commons.IRAgentEventTopic, &irAgentMessageHandler)
-	// end ir event handler
-
 	// device event handler
 	deviceEventHandler := DeviceUpdateMessageHandler{}
 

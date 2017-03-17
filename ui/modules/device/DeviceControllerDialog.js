@@ -15,7 +15,7 @@ class DeviceControllerDialog extends Component {
 
 	render() {
 		return (
-			<Dialog title={this.props.device ? this.props.device.name : ""}
+			<Dialog title={this.props.device ? (this.props.device.name + " - " + this.props.device.serial ) : ""}
 				modal={true}
 				actions={
 					<FlatButton

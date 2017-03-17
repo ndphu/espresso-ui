@@ -49,19 +49,14 @@ export default class DeviceListItem extends Component {
 		}
 	}
 
-	onDeleteClick() {		
-		helper.deleteDevice(this.props.device).then(res=>res.json()).then(json => {
-			if (json.error != undefined) {
-				alert(json.error)
-			}
-		})
-		// const d = this.props.device
-		// d.deleted = true
-		// helper.putDevice(d).then(res=>res.json()).then(json => {
-		// 	if (json.error != undefined) {
-		// 		alert(json.error)
-		// 	}
-		// })
+	onDeleteClick() {
+		if (confirm("Delete \"" + this.props.device.name + "\"?")) {
+			helper.deleteDevice(this.props.device).then(res=>res.json()).then(json => {
+				if (json.error != undefined) {
+					alert(json.error)
+				}
+			})
+		}
 	}
 
 
@@ -79,7 +74,7 @@ export default class DeviceListItem extends Component {
 		        secondaryText={
 		        	<p>
           				<span>{this.props.device.serial}</span><br />
-          				<span style={this.props.device.online ? styles.onlineStyle : styles.offlineStyle }>{this.props.device.online ? "Online" : "Offline"}</span>
+          				<span style={this.props.device.online ? styles.onlineStyle : styles.offlineStyle }>{this.props.device.online ? "ONLINE" : "OFFLINE"}</span>
         			</p>
         		}
 		        secondaryTextLines={2}
