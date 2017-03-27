@@ -3,6 +3,11 @@ import Websocket from 'react-websocket';
 import {Table, TableBody, TableHeader, TableHeaderColumn, TableRow, TableRowColumn} from 'material-ui/Table';
 import Paper from 'material-ui/Paper';
 import Toggle from 'material-ui/Toggle';
+import Helper from '../Helper'
+
+
+const helper = new Helper()
+
 class Events extends Component {
     constructor(props) {
         super(props)
@@ -26,48 +31,7 @@ class Events extends Component {
         })
     }
 
-    timeDifference(current, previous) {
-
-        var msPerMinute = 60 * 1000;
-        var msPerHour = msPerMinute * 60;
-        var msPerDay = msPerHour * 24;
-        var msPerMonth = msPerDay * 30;
-        var msPerYear = msPerDay * 365;
-
-        var elapsed = current - previous;
-
-        if (elapsed < msPerMinute) {
-            const secCount = Math.round(elapsed/1000)
-            if (secCount == 0) {
-                return "Just now"
-            } else if (secCount == 1) {
-                return '1 second ago';
-            } else {
-                return secCount + ' seconds ago';
-            }
-        }
-
-        else if (elapsed < msPerHour) {
-            const minCount = Math.round(elapsed/msPerMinute)
-            return minCount > 1 ? (minCount + ' minutes ago') : "1 minute ago";   
-        }
-
-        else if (elapsed < msPerDay ) {
-            return Math.round(elapsed/msPerHour ) + ' hours ago';   
-        }
-
-        else if (elapsed < msPerMonth) {
-            return 'approximately ' + Math.round(elapsed/msPerDay) + ' days ago';   
-        }
-
-        else if (elapsed < msPerYear) {
-            return 'approximately ' + Math.round(elapsed/msPerMonth) + ' months ago';   
-        }
-
-        else {
-            return 'approximately ' + Math.round(elapsed/msPerYear ) + ' years ago';   
-        }
-    }
+    
 
     onServerMessage(data) {        
         let msg = JSON.parse(data);
@@ -99,7 +63,7 @@ class Events extends Component {
                 <TableRowColumn><b>{e.button}</b></TableRowColumn>
                 <TableRowColumn>{e.repeat}</TableRowColumn>
                 {this.state.debug && <TableRowColumn>{e.source}</TableRowColumn>}
-                <TableRowColumn>{this.timeDifference(now, e.unixTimestamp * 1000)}</TableRowColumn>
+                <TableRowColumn>{helper.timeDifference(now, e.unixTimestamp * 1000)}</TableRowColumn>
                 {this.state.debug && (<TableRowColumn>{this.toISOTime(e.timestamp)}</TableRowColumn>)}
             </TableRow>
         )

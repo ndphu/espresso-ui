@@ -5,9 +5,14 @@ import injectTapEventPlugin from 'react-tap-event-plugin'
 import { render } from 'react-dom'
 import { Router, Route, browserHistory , IndexRoute, Redirect } from 'react-router'
 import App from './modules/App'
+
+import PhysicalDevices from './modules/device/PhysicalDevices'
 import Devices from './modules/device/Devices'
-import Events from './modules/Events'
-import Automation from './modules/Automation'
+
+import Automation from './modules/automation/Automation'
+
+import Events from './modules/event/Events'
+
 
 injectTapEventPlugin();
 
@@ -21,8 +26,9 @@ window.getHumanReadableSize = function(bytes) {
 render(
 	<MuiThemeProvider>
 		<Router history={browserHistory }>
-			<Route path="/esp" component={App}>
+			<Route path="/esp" component={App}>                
                 <Route path="/esp/devices" component={Devices}/>
+                <Route path="/esp/physical-devices" component={PhysicalDevices}/>
                 <Route path="/esp/automation" component={Automation}/>
                 <Route path="/esp/events" component={Events}/>
 			</Route>

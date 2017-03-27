@@ -75,7 +75,7 @@ export default class DeviceListItem extends Component {
 		        secondaryText={
 		        	<p>
           				<span>{this.props.device.serial}</span><br />
-          				<span style={this.props.device.online ? styles.onlineStyle : styles.offlineStyle }>{this.props.device.online ? "ONLINE" : "OFFLINE"}</span>
+          				<span style={this.props.device.status.online ? styles.onlineStyle : styles.offlineStyle }>{this.props.device.status.online ? "ONLINE" : "OFFLINE"}</span>
         			</p>
         		}
 		        secondaryTextLines={2}
