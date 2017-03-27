@@ -63,6 +63,7 @@ export default class DeviceListItem extends Component {
 	render() {
 		return (
 			<ListItem
+                style={this.props.style}
 				leftAvatar={<Avatar icon={<HardwareDeveloperBoard/>} />}
 				rightIconButton={
 					<IconMenu iconButtonElement={iconButtonElement}>    

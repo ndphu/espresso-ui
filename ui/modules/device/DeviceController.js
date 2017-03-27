@@ -9,6 +9,13 @@ const gpios = [0, 1, 2, 3, 4, 5, 9, 10,12, 13, 14, 15, 16]
 
 const helper = new Helper()
 
+const styles = {
+	formStyle: {
+		padding: "8px",
+		margin: "8px"
+	}
+}
+
 class DeviceController extends Component {
 	constructor(props) {
 		super(props)
@@ -48,7 +55,7 @@ class DeviceController extends Component {
 	}
 
 	ping() {
-		this.__sendTextCommand("PING")
+		this.__sendTextCommand("PING;")
 	}
 
 	handleChange(event, index, value) {
@@ -63,7 +70,7 @@ class DeviceController extends Component {
 	render() {
 		var gpioPinMenuItems= this.state.gpios.map(gpio => <MenuItem key={"key-gpio-dropdown-menu-item-" + gpio} value={gpio} primaryText={"GPIO_" + gpio} />)
 		return (
-			<div>
+			<div style={styles.formStyle}>
 				{this.props.device.online && (
 					<div>
 						<h5>Test</h5>

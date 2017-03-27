@@ -3,8 +3,30 @@ import Websocket from 'react-websocket';
 import RaisedButton from 'material-ui/RaisedButton'
 import NewDeviceDialog from './NewDeviceDialog'
 import DeviceList from './DeviceList'
-import DeviceControllerDialog from './DeviceControllerDialog'
+//import DeviceControllerDialog from './DeviceControllerDialog'
+import DeviceController from './DeviceController'
 import Helper from '../Helper'
+import {Grid, Row, Col} from 'react-bootstrap'
+import Paper from 'material-ui/Paper';
+
+const styles = {
+    gridContainer: {
+        padding: "0px",        
+        margin: "0px",
+        width: "100%",
+    },
+    leftPanel: {
+        padding: "0px", 
+        
+    },
+    rightPanel: {
+        padding: "0px",      
+        
+    },
+    paperStyle: {        
+        margin: "8px",
+    }
+}
 
 class Device extends Component {
     constructor(props) {
@@ -52,6 +74,10 @@ class Device extends Component {
         for (var i = 0; i < this.state.devices.length; ++i) {
             if (this.state.devices[i]._id == device._id) {
                 this.state.devices[i] = device;
+                if (this.state.selectedDevice != undefined 
+                    && this.state.selectedDevice._id == device._id) {
+                    this.state.selectedDevice = device
+                }
                 this.setState(this.state)
                 break;
             }
@@ -123,35 +149,38 @@ class Device extends Component {
                 unknowDevices.push(e)
             }
         })
-
+        
         return (
-            <div style={{margin: "16px"}}>
-                {this.state.liveUpdate && <Websocket url={this.getWebsocketUrl()} onMessage={this.onServerMessage.bind(this)}/>}
+            <Grid style={styles.gridContainer}>                
                 <Helper ref="helper"/>
-            	<RaisedButton 
-	            	label="New Device" 
-	            	primary={true} 
-	            	onTouchTap={()=>{this.setState({showAddDialog: true})}}/>
-	            
-                        <DeviceList 
-                            deviceClickHandler={(device)=>{this.onDeviceClick(device)}} 
-                            devices={managedDevices} 
-                            deviceCategory="Managed Devices"
-                        />
+                <Col lg={3} md={4} xs={6} sm={4} style={styles.leftPanel}>
+                    {this.state.liveUpdate && <Websocket url={this.getWebsocketUrl()} onMessage={this.onServerMessage.bind(this)}/>}                        
+                	<DeviceList 
+                        deviceClickHandler={(device)=>{this.onDeviceClick(device)}} 
+                        devices={managedDevices} 
+                        selectedDeviceId={this.state.selectedDevice._id}
+                        deviceCategory="Managed Devices"
+                    />
 
-                        <DeviceList 
-                            deviceClickHandler={(device)=>{this.onUnknowDeviceClick(device)}}
-                            devices={unknowDevices} 
-                            deviceCategory="Unknown Devices"                    
-                        />
+                    <DeviceList 
+                        deviceClickHandler={(device)=>{this.onUnknowDeviceClick(device)}}
+                        devices={unknowDevices} 
+                        selectedDeviceId={this.state.selectedDevice._id}
+                        deviceCategory="Unknown Devices"                    
+                    />
+
+                </Col>
+                {this.state.selectedDevice._id &&  
+                    (
+                    <Col lg={9} md={8} xs={6} sm={8} style={styles.rightPanel}>
+                        <Paper style={styles.paperStyle}>
+                            <DeviceController device={this.state.selectedDevice}/>
+                        </Paper>
+                    </Col>
+                    )
+                }
                 
-
-                <DeviceControllerDialog 
-                    device={this.state.selectedDevice}
-                    showDialog={this.state.showDeviceController} 
-                    dialogCloseCallback={()=>{this.setState({showDeviceController:false})}}/>
-                <NewDeviceDialog showDialog={this.state.showAddDialog} dialogCloseCallback={()=>{this.dialogCloseCallback()}}/>
-            </div>
+            </Grid>
         )
     }
 }
